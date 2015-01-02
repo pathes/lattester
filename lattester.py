@@ -6,14 +6,17 @@ import subprocess
 import filecmp
 import sys
 
-OK = '\x1b[32mOK\x1b[0m'
-CE = '\x1b[31mCE\x1b[0m'
-WA = '\x1b[33mWA\x1b[0m'
+NORMAL = '\x1b[0m'
+RED = '\x1b[31m'
+GREEN = '\x1b[32m'
+YELLOW = '\x1b[33m'
 
-LATTESTS_GOOD_PATH = 'lattests/good/'
+
+LATTESTS_PATH = 'lattests/'
+
 
 def run_good(LATC_PATH):
-    for rel_filepath in sorted(glob(LATTESTS_GOOD_PATH + '*.lat')):
+    for rel_filepath in sorted(glob(LATTESTS_PATH + 'good/*.lat')):
         abs_filepath = os.path.abspath(rel_filepath)
 
         root, _ = os.path.splitext(abs_filepath)
@@ -23,7 +26,7 @@ def run_good(LATC_PATH):
         compile_retcode = subprocess.call([LATC_PATH, abs_filepath])
 
         if compile_retcode > 0:
-            print('{} {}'.format(rel_root, CE))
+            print('{} {}'.format(rel_root, RED + 'CE' + NORMAL))
             continue
 
         # Open input if it exists
@@ -42,9 +45,29 @@ def run_good(LATC_PATH):
             proc_stdin.close()
         # Compare outputs
         same = filecmp.cmp(root + '.output', root + '.proc.output')
-        print('{} {}'.format(rel_root, OK if same else WA))
+        print('{} {}'.format(rel_root,
+            GREEN + 'OK' + NORMAL if same
+            else YELLOW + 'WA' + NORMAL)
+        )
         # Remove tmp output
         os.remove(root + '.proc.output')
+
+
+def run_bad(LATC_PATH):
+    for rel_filepath in sorted(glob(LATTESTS_PATH + 'bad/*.lat')):
+        abs_filepath = os.path.abspath(rel_filepath)
+
+        root, _ = os.path.splitext(abs_filepath)
+        rel_root, _ = os.path.splitext(rel_filepath)
+
+        # Compile
+        compile_retcode = subprocess.call([LATC_PATH, abs_filepath])
+
+        print('{} {}'.format(rel_root,
+            RED + 'no CE' + NORMAL if compile_retcode == 0
+            else GREEN + 'CE' + NORMAL)
+        )
+
 
 def main():
     # Following can be changed by passing an argument to lattests.py
@@ -52,6 +75,7 @@ def main():
     if len(sys.argv) > 1:
         LATC_PATH = sys.argv[1]
     run_good(LATC_PATH)
+    run_bad(LATC_PATH)
 
 if __name__ == "__main__":
     main()
